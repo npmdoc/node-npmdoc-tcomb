@@ -470,15 +470,6 @@
 
         <li>
 
-            <a class="apidocElementLiA" href="#apidoc.element.tcomb.toString">
-            function <span class="apidocSignatureSpan">tcomb.</span>toString
-            <span class="apidocSignatureSpan">()</span>
-            </a>
-
-        </li>
-
-        <li>
-
             <a class="apidocElementLiA" href="#apidoc.element.tcomb.tuple">
             function <span class="apidocSignatureSpan">tcomb.</span>tuple
             <span class="apidocSignatureSpan">(types, name)</span>
@@ -2582,21 +2573,21 @@
   return value;
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+}, 'Person'); // &lt;- remember to give types a name
 
-A type-checked function:
+var User = t.struct({
+  email: t.String,
+  profile: Person
+}, 'User');
 
-```js
-import t from 'tcomb';
+var mynumber = t.<span class="apidocCodeKeywordSpan">Number</span>('a');
+// =&gt; Invalid value "a" supplied to Number
 
-function sum(a, b) {
-  t.<span class="apidocCodeKeywordSpan">Number</span>(a);
-  t.Number(b);
-  return a + b;
-}
+var myuser = User({ email: 1 });
+// =&gt; Invalid value 1 supplied to User/email: String
 
-sum(1, 's'); // throws '[tcomb] Invalid value "s" supplied to Number'
-
-// using babel-plugin-tcomb
+myuser = User({ email: 'email', profile: { name: 2 } });
+// =&gt; Invalid value 2 supplied to User/profile: Person/name: String
 ...</pre></li>
     </ul>
 
@@ -3018,15 +3009,21 @@ expected one of ' + assert.stringify(Object.keys(map)) + ')'; });
   throw new TypeError('[tcomb] ' + message);
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
-      assert(isFunction(f), function () { return 'Invalid block in clause #' + count; });
+  if (guard !== true) {
+    if (isFunction(message)) { // handle lazy messages
+      message = message();
     }
-
-    if (type.is(x) &amp;&amp; guard(x)) {
-      return f(x);
+    else if (isNil(message)) { // use a default message
+      message = 'Assert failed (turn on "Pause on exceptions" in your Source panel)';
     }
+    assert.<span class="apidocCodeKeywordSpan">fail</span>(message);
   }
-  assert.<span class="apidocCodeKeywordSpan">fail</span>('Match error');
-};
+}
+
+assert.fail = fail;
+assert.stringify = stringify;
+
+module.exports = assert;
 ...</pre></li>
     </ul>
 
@@ -3439,7 +3436,23 @@ props, [options]) combinator (expected a boolean)'; });
 
   return Intersection;
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+  - added `intersection` combinator fix #111
+
+    **Example**
+
+    ```js
+    const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+    const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+    const MinMax = t.<span class="apidocCodeKeywordSpan">intersection</span>([Min, Max], 'MinMax');
+
+    MinMax.is('abc'); // =&gt; true
+    MinMax.is('a'); // =&gt; false
+    MinMax.is('abcde'); // =&gt; false
+    ```
+
+- **Internal**
+...</pre></li>
     </ul>
 
 
@@ -3503,17 +3516,20 @@ predicate) (expected a function)');
   return x instanceof type; // type should be a class constructor
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -3995,21 +4011,21 @@ expected an object)'; });
   return Struct;
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+- the following elements have the form: `&lt;field name&gt;: &lt;field type&gt;`
+
+Note: for more readable messages remember to give types a name
+
+Example:
+
 ```js
-const Integer = t.refinement(t.Number, (n) =&gt; n % 1 === 0, 'Integer');
-```
+var Person = t.<span class="apidocCodeKeywordSpan">struct</span>({
+  name: t.String
+}, 'Person'); // &lt;- remember to give types a name
 
-A type-checked class:
-
-```js
-const Person = t.<span class="apidocCodeKeywordSpan">struct</span>({
-  name: t.String,              // required string
-  surname: t.maybe(t.String),  // optional string
-  age: t.Integer,                // required integer
-  tags: t.list(t.String)       // a list of strings
-}, 'Person');
-
-// methods are defined as usual
+var User = t.struct({
+  email: t.String,
+  profile: Person
+}, 'User');
 ...</pre></li>
     </ul>
 
@@ -4074,22 +4090,24 @@ const Person = t.<span class="apidocCodeKeywordSpan">struct</span>({
 
   return Refinement;
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
-    </ul>
+    <li>example usage<pre class="apidocCodePre">...
 
+- **New Feature**
+  - added `intersection` combinator fix #111
 
+**Example**
 
-    <h2>
-        <a href="#apidoc.element.tcomb.toString" id="apidoc.element.tcomb.toString">
-        function <span class="apidocSignatureSpan">tcomb.</span>toString
-        <span class="apidocSignatureSpan">()</span>
-        </a>
-    </h2>
-    <ul>
-    <li>description and source-code<pre class="apidocCodePre">toString = function () {
-    return text;
-}</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+```js
+const Min = t.<span class="apidocCodeKeywordSpan">subtype</span>(t.String, function (s) { return s.length &gt; 2; }, 'Min
+');
+const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+const MinMax = t.intersection([Min, Max], 'MinMax');
+
+MinMax.is('abc'); // =&gt; true
+MinMax.is('a'); // =&gt; false
+MinMax.is('abcde'); // =&gt; false
+```
+...</pre></li>
     </ul>
 
 
@@ -4388,17 +4406,20 @@ http://facebook.github.io/react/docs/update.html):
     <ul>
     <li>description and source-code<pre class="apidocCodePre">is = function () { return true; }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -4487,17 +4508,20 @@ case 'struct' :
   return Array.isArray ? Array.isArray(x) : x instanceof Array;
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -4588,17 +4612,20 @@ case 'struct' :
   return x === true || x === false;
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -4687,17 +4714,20 @@ case 'struct' :
     <ul>
     <li>description and source-code<pre class="apidocCodePre">is = function (x) { return x instanceof Date; }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -4784,17 +4814,20 @@ case 'struct' :
     <ul>
     <li>description and source-code<pre class="apidocCodePre">is = function (x) { return x instanceof Error; }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -4883,17 +4916,20 @@ case 'struct' :
   return typeof x === 'function';
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -4991,17 +5027,20 @@ case 'struct' :
   return is(x, type) &amp;&amp; predicate(x);
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -5145,17 +5184,20 @@ case 'struct' :
   return x === null || x === void 0;
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -5231,21 +5273,21 @@ case 'struct' :
   return value;
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+}, 'Person'); // &lt;- remember to give types a name
 
-A type-checked function:
+var User = t.struct({
+  email: t.String,
+  profile: Person
+}, 'User');
 
-```js
-import t from 'tcomb';
+var mynumber = t.<span class="apidocCodeKeywordSpan">Number</span>('a');
+// =&gt; Invalid value "a" supplied to Number
 
-function sum(a, b) {
-  t.<span class="apidocCodeKeywordSpan">Number</span>(a);
-  t.Number(b);
-  return a + b;
-}
+var myuser = User({ email: 1 });
+// =&gt; Invalid value 1 supplied to User/email: String
 
-sum(1, 's'); // throws '[tcomb] Invalid value "s" supplied to Number'
-
-// using babel-plugin-tcomb
+myuser = User({ email: 'email', profile: { name: 2 } });
+// =&gt; Invalid value 2 supplied to User/profile: Person/name: String
 ...</pre></li>
     </ul>
 
@@ -5262,17 +5304,20 @@ sum(1, 's'); // throws '[tcomb] Invalid value "s" supplied to Number'
   return typeof x === 'number' &amp;&amp; isFinite(x) &amp;&amp; !isNaN(x);
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -5363,17 +5408,20 @@ case 'struct' :
   return !isNil(x) &amp;&amp; typeof x === 'object' &amp;&amp; !isArray(x);
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -5462,17 +5510,20 @@ case 'struct' :
     <ul>
     <li>description and source-code<pre class="apidocCodePre">is = function (x) { return x instanceof RegExp; }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -5561,17 +5612,20 @@ case 'struct' :
   return typeof x === 'string';
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -5662,17 +5716,20 @@ case 'struct' :
   return isFunction(x) &amp;&amp; isObject(x.meta);
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -6115,21 +6172,21 @@ case 'struct' :
   return value;
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+}, 'Person'); // &lt;- remember to give types a name
 
-A type-checked function:
+var User = t.struct({
+  email: t.String,
+  profile: Person
+}, 'User');
 
-```js
-import t from 'tcomb';
+var mynumber = t.<span class="apidocCodeKeywordSpan">Number</span>('a');
+// =&gt; Invalid value "a" supplied to Number
 
-function sum(a, b) {
-  t.<span class="apidocCodeKeywordSpan">Number</span>(a);
-  t.Number(b);
-  return a + b;
-}
+var myuser = User({ email: 1 });
+// =&gt; Invalid value 1 supplied to User/email: String
 
-sum(1, 's'); // throws '[tcomb] Invalid value "s" supplied to Number'
-
-// using babel-plugin-tcomb
+myuser = User({ email: 'email', profile: { name: 2 } });
+// =&gt; Invalid value 2 supplied to User/profile: Person/name: String
 ...</pre></li>
     </ul>
 
@@ -6528,15 +6585,21 @@ expected one of ' + assert.stringify(Object.keys(map)) + ')'; });
   throw new TypeError('[tcomb] ' + message);
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
-      assert(isFunction(f), function () { return 'Invalid block in clause #' + count; });
+  if (guard !== true) {
+    if (isFunction(message)) { // handle lazy messages
+      message = message();
     }
-
-    if (type.is(x) &amp;&amp; guard(x)) {
-      return f(x);
+    else if (isNil(message)) { // use a default message
+      message = 'Assert failed (turn on "Pause on exceptions" in your Source panel)';
     }
+    assert.<span class="apidocCodeKeywordSpan">fail</span>(message);
   }
-  assert.<span class="apidocCodeKeywordSpan">fail</span>('Match error');
-};
+}
+
+assert.fail = fail;
+assert.stringify = stringify;
+
+module.exports = assert;
 ...</pre></li>
     </ul>
 
@@ -6949,7 +7012,23 @@ props, [options]) combinator (expected a boolean)'; });
 
   return Intersection;
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+  - added `intersection` combinator fix #111
+
+    **Example**
+
+    ```js
+    const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+    const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+    const MinMax = t.<span class="apidocCodeKeywordSpan">intersection</span>([Min, Max], 'MinMax');
+
+    MinMax.is('abc'); // =&gt; true
+    MinMax.is('a'); // =&gt; false
+    MinMax.is('abcde'); // =&gt; false
+    ```
+
+- **Internal**
+...</pre></li>
     </ul>
 
 
@@ -7013,17 +7092,20 @@ predicate) (expected a function)');
   return x instanceof type; // type should be a class constructor
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+  **Example**
 
+  ```js
+  const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+  const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+  const MinMax = t.intersection([Min, Max], 'MinMax');
 
-var isType = require('./isType');
+  MinMax.<span class="apidocCodeKeywordSpan">is</span>('abc'); // =&gt; true
+  MinMax.is('a'); // =&gt; false
+  MinMax.is('abcde'); // =&gt; false
+  ```
 
-// returns true if x is an instance of type
-module.exports = function is(x, type) {
-  if (isType(type)) {
-    return type.<span class="apidocCodeKeywordSpan">is</span>(x);
-  }
-  return x instanceof type; // type should be a class constructor
-};
+- **Internal**
+- optimised the generation of default names for types
 ...</pre></li>
     </ul>
 
@@ -7505,21 +7587,21 @@ expected an object)'; });
   return Struct;
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+- the following elements have the form: `&lt;field name&gt;: &lt;field type&gt;`
+
+Note: for more readable messages remember to give types a name
+
+Example:
+
 ```js
-const Integer = t.refinement(t.Number, (n) =&gt; n % 1 === 0, 'Integer');
-```
+var Person = t.<span class="apidocCodeKeywordSpan">struct</span>({
+  name: t.String
+}, 'Person'); // &lt;- remember to give types a name
 
-A type-checked class:
-
-```js
-const Person = t.<span class="apidocCodeKeywordSpan">struct</span>({
-  name: t.String,              // required string
-  surname: t.maybe(t.String),  // optional string
-  age: t.Integer,                // required integer
-  tags: t.list(t.String)       // a list of strings
-}, 'Person');
-
-// methods are defined as usual
+var User = t.struct({
+  email: t.String,
+  profile: Person
+}, 'User');
 ...</pre></li>
     </ul>
 
@@ -7584,7 +7666,24 @@ const Person = t.<span class="apidocCodeKeywordSpan">struct</span>({
 
   return Refinement;
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+
+- **New Feature**
+  - added `intersection` combinator fix #111
+
+**Example**
+
+```js
+const Min = t.<span class="apidocCodeKeywordSpan">subtype</span>(t.String, function (s) { return s.length &gt; 2; }, 'Min
+');
+const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+const MinMax = t.intersection([Min, Max], 'MinMax');
+
+MinMax.is('abc'); // =&gt; true
+MinMax.is('a'); // =&gt; false
+MinMax.is('abcde'); // =&gt; false
+```
+...</pre></li>
     </ul>
 
 
@@ -8021,7 +8120,23 @@ expected one of ' + assert.stringify(Object.keys(map)) + ')'; });
   });
   return enums(value, name);
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+  var displayName = name || getDefaultName(domain, codomain);
+  var domainLength = domain.length;
+  var optionalArgumentsIndex = getOptionalArgumentsIndex(domain);
+
+  function FuncType(value, path) {
+
+if (!isInstrumented(value)) { // automatically instrument the function
+  return FuncType.<span class="apidocCodeKeywordSpan">of</span>(value);
+}
+
+if (process.env.NODE_ENV !== 'production') {
+  path = path || [displayName];
+  assert(FuncType.is(value), function () { return 'Invalid value ' + assert.stringify(value) + ' supplied to '
+; + path.join('/'); });
+}
+...</pre></li>
     </ul>
 
 
@@ -8432,7 +8547,23 @@ module.exports = extend;
 
   return Intersection;
 }</pre></li>
-    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+  - added `intersection` combinator fix #111
+
+    **Example**
+
+    ```js
+    const Min = t.subtype(t.String, function (s) { return s.length &gt; 2; }, 'Min');
+    const Max = t.subtype(t.String, function (s) { return s.length &lt; 5; }, 'Max');
+    const MinMax = t.<span class="apidocCodeKeywordSpan">intersection</span>([Min, Max], 'MinMax');
+
+    MinMax.is('abc'); // =&gt; true
+    MinMax.is('a'); // =&gt; false
+    MinMax.is('abcde'); // =&gt; false
+    ```
+
+- **Internal**
+...</pre></li>
     </ul>
 
 
@@ -8859,21 +8990,21 @@ expected an object)'; });
   return Struct;
 }</pre></li>
     <li>example usage<pre class="apidocCodePre">...
+- the following elements have the form: `&lt;field name&gt;: &lt;field type&gt;`
+
+Note: for more readable messages remember to give types a name
+
+Example:
+
 ```js
-const Integer = t.refinement(t.Number, (n) =&gt; n % 1 === 0, 'Integer');
-```
+var Person = t.<span class="apidocCodeKeywordSpan">struct</span>({
+  name: t.String
+}, 'Person'); // &lt;- remember to give types a name
 
-A type-checked class:
-
-```js
-const Person = t.<span class="apidocCodeKeywordSpan">struct</span>({
-  name: t.String,              // required string
-  surname: t.maybe(t.String),  // optional string
-  age: t.Integer,                // required integer
-  tags: t.list(t.String)       // a list of strings
-}, 'Person');
-
-// methods are defined as usual
+var User = t.struct({
+  email: t.String,
+  profile: Person
+}, 'User');
 ...</pre></li>
     </ul>
 
