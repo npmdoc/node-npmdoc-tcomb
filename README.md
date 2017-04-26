@@ -1,6 +1,6 @@
 # npmdoc-tcomb
 
-#### api documentation for  [tcomb (v3.2.20)](https://github.com/gcanti/tcomb)  [![npm package](https://img.shields.io/npm/v/npmdoc-tcomb.svg?style=flat-square)](https://www.npmjs.org/package/npmdoc-tcomb) [![travis-ci.org build-status](https://api.travis-ci.org/npmdoc/node-npmdoc-tcomb.svg)](https://travis-ci.org/npmdoc/node-npmdoc-tcomb)
+#### basic api documentation for  [tcomb (v3.2.20)](https://github.com/gcanti/tcomb)  [![npm package](https://img.shields.io/npm/v/npmdoc-tcomb.svg?style=flat-square)](https://www.npmjs.org/package/npmdoc-tcomb) [![travis-ci.org build-status](https://api.travis-ci.org/npmdoc/node-npmdoc-tcomb.svg)](https://travis-ci.org/npmdoc/node-npmdoc-tcomb)
 
 #### Type checking and DDD for JavaScript
 
@@ -93,7 +93,8 @@
         "store"
     ],
     "typings": "index.d.ts",
-    "version": "3.2.20"
+    "version": "3.2.20",
+    "bin": {}
 }
 ```
 
